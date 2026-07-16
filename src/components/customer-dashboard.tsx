@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Area,
@@ -52,6 +52,11 @@ import {
   stackableOffers,
   tiers,
 } from "@/lib/tier-data";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  demoDashboardSnapshot,
+  loadAuthenticatedDashboard,
+} from "@/lib/supabase/dashboard";
 
 const iconMap: Record<string, LucideIcon> = {
   palette: Palette,
@@ -71,10 +76,6 @@ const navItems = [
 ];
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const currentSpend = 1640;
-const currentTier = tiers[1];
-const nextTier = tiers[2];
-const protectedThrough = "December 31, 2027";
 
 function SectionHeading({
   eyebrow,
@@ -112,12 +113,36 @@ export default function CustomerDashboard() {
   const [toast, setToast] = useState<string | null>(null);
   const [resellerChecks, setResellerChecks] = useState({ license: true, decorator: true, spend: true });
   const [resellerStatus, setResellerStatus] = useState<"draft" | "submitted">("draft");
+  const [snapshot, setSnapshot] = useState(demoDashboardSnapshot);
 
-  const nextTierRemaining = nextTier.threshold - currentSpend;
-  const progressInBand = Math.min(
-    100,
-    ((currentSpend - currentTier.threshold) / (nextTier.threshold - currentTier.threshold)) * 100,
-  );
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    let active = true;
+    loadAuthenticatedDashboard(supabase).then((result) => {
+      if (active && result) setSnapshot(result);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const currentSpend = snapshot.currentYearSpend;
+  const currentTier = tiers.find((tier) => tier.id === snapshot.currentTierId) ?? tiers[0];
+  const currentTierIndex = tiers.findIndex((tier) => tier.id === currentTier.id);
+  const isTopTier = currentTierIndex === tiers.length - 1;
+  const nextTier = tiers[Math.min(currentTierIndex + 1, tiers.length - 1)];
+  const nextTierRemaining = isTopTier ? 0 : Math.max(0, nextTier.threshold - currentSpend);
+  const progressInBand = isTopTier
+    ? 100
+    : Math.min(
+        100,
+        Math.max(
+          0,
+          ((currentSpend - currentTier.threshold) / (nextTier.threshold - currentTier.threshold)) * 100,
+        ),
+      );
   const completedReseller = Object.values(resellerChecks).filter(Boolean).length;
 
   const currentDiscount = useMemo(
@@ -153,7 +178,7 @@ export default function CustomerDashboard() {
         <div className="account-chip">
           <div className="avatar">KS</div>
           <div>
-            <strong>Kelvin Studios</strong>
+            <strong>{snapshot.displayName}</strong>
             <span>Customer account</span>
           </div>
           <ChevronDown size={16} aria-hidden="true" />
@@ -208,7 +233,7 @@ export default function CustomerDashboard() {
             </button>
             <button className="profile-button" onClick={() => notify("Account settings will connect in the live version.")}>
               <div className="mini-avatar">KS</div>
-              <span>Kelvin</span>
+              <span>{snapshot.firstName}</span>
               <ChevronDown size={15} />
             </button>
           </div>
@@ -219,7 +244,7 @@ export default function CustomerDashboard() {
             <div className="welcome-line">
               <div>
                 <span className="eyebrow">Thursday, July 16</span>
-                <h1>Welcome back, Kelvin.</h1>
+                <h1>Welcome back, {snapshot.firstName}.</h1>
                 <p>Here’s how your Onward relationship is growing.</p>
               </div>
               <a className="primary-button desktop-order" href="https://onwardcustoms.com/create" target="_blank" rel="noreferrer">
@@ -246,7 +271,7 @@ export default function CustomerDashboard() {
                     <strong>{formatter.format(currentSpend)}</strong>
                   </div>
                   <div className="progress-target">
-                    <span>{formatter.format(nextTierRemaining)} to Silver</span>
+                    <span>{isTopTier ? "Highest tier achieved" : `${formatter.format(nextTierRemaining)} to ${nextTier.shortName}`}</span>
                     <b>{Math.round(progressInBand)}%</b>
                   </div>
                 </div>
@@ -257,7 +282,7 @@ export default function CustomerDashboard() {
                   <span>Bronze · $500</span>
                   <span>Silver · $2,500</span>
                 </div>
-                <p className="protected-copy"><ShieldCheck size={16} /> Your Bronze status is protected through <strong>{protectedThrough}</strong>.</p>
+                <p className="protected-copy"><ShieldCheck size={16} /> Your {currentTier.shortName} status is protected through <strong>{snapshot.protectedThrough}</strong>.</p>
               </div>
 
               <div className="tier-hero-side">
@@ -301,7 +326,7 @@ export default function CustomerDashboard() {
               action={<button className="secondary-button" onClick={() => setSelectedTier("comparison")}>Compare all tiers</button>}
             />
             <div className="tier-track-card">
-              <div className="tier-track-line"><motion.span initial={{ width: 0 }} animate={{ width: `${(currentSpend / 5000) * 100}%` }} transition={{ duration: 1.1 }} /></div>
+              <div className="tier-track-line"><motion.span initial={{ width: 0 }} animate={{ width: `${Math.min(100, (currentSpend / 5000) * 100)}%` }} transition={{ duration: 1.1 }} /></div>
               <div className="tier-nodes">
                 {tiers.map((tier, index) => {
                   const achieved = currentSpend >= tier.threshold;
@@ -478,7 +503,7 @@ export default function CustomerDashboard() {
           </section>
 
           <section className="content-section cta-section">
-            <div><span className="eyebrow">Keep moving onward</span><h2>You’re {formatter.format(nextTierRemaining)} away from Silver.</h2><p>Your next eligible order can unlock stronger savings, more artwork time and premium account benefits.</p></div>
+            <div><span className="eyebrow">Keep moving onward</span><h2>{isTopTier ? "You’ve reached our highest tier." : `You’re ${formatter.format(nextTierRemaining)} away from ${nextTier.shortName}.`}</h2><p>{isTopTier ? "Thank you for growing with Onward Customs." : "Your next eligible order can unlock stronger savings, more artwork time and premium account benefits."}</p></div>
             <a className="primary-button" href="https://onwardcustoms.com/create" target="_blank" rel="noreferrer">Start your next order <ArrowRight size={17} /></a>
           </section>
         </main>

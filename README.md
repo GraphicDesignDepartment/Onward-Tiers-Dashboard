@@ -35,9 +35,36 @@ npm run lint
 npm run build
 ```
 
+## Supabase development foundation
+
+The development database schema is versioned under [`supabase/migrations`](supabase/migrations):
+
+- Customer and company reward accounts
+- Paid-in-full order eligibility
+- Onward Blanks exclusion
+- Tax, shipping, rush-fee, and other-fee deductions
+- Calendar-year tier calculations and protected-through dates
+- Immutable reward and benefit ledgers
+- Reseller/Decorator verification workflow
+- Import and audit history
+- Row Level Security for customer, company, and staff access
+
+Copy `.env.example` to `.env.local` to enable authenticated development reads:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_REPLACE_ME
+```
+
+Only the publishable key belongs in browser configuration. Never place `sb_secret_*`, legacy `service_role`, database passwords, customer exports, or production PII in source control.
+
+When the variables or an authenticated session are absent, the app intentionally falls back to representative demo data so the static GitHub Pages preview continues to work.
+
 ## Data status
 
-The current build uses typed representative data. Live customer authentication, DecoNetwork order synchronization, benefit redemption, verification document handling, and checkout application are intentionally deferred until the frontend is approved and the available DecoNetwork integration surface is confirmed.
+Supabase currently contains anonymized proof data matching the provisional distribution of 3 Gold, 7 Silver, 44 Bronze, 248 Beginner, and 2 no-tier accounts. No names, emails, addresses, telephone numbers, or order numbers from the supplied DecoNetwork exports were imported.
+
+Real customer import, Billing ID reconciliation, the missing January–June 2025 history, production authentication, and the staff CSV upload interface remain deferred until the proof is approved.
 
 ## Deployment
 

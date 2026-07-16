@@ -4,6 +4,9 @@ const isGitHubPages = process.env.GITHUB_ACTIONS === "true";
 const repositoryBasePath = "/Onward-Tiers-Dashboard";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: process.cwd(),
+  },
   output: isGitHubPages ? "export" : undefined,
   basePath: isGitHubPages ? repositoryBasePath : "",
   assetPrefix: isGitHubPages ? repositoryBasePath : "",
