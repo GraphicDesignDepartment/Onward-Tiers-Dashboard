@@ -17,7 +17,7 @@ export default function AuthenticatedDashboard() {
   const [authState, setAuthState] = useState<AuthState>(
     isSupabaseConfigured ? "checking" : "demo",
   );
-  const [email, setEmail] = useState("vincent@onwardcustoms.com");
+  const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +98,7 @@ export default function AuthenticatedDashboard() {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
+            placeholder="you@example.com"
             required
           />
           <button className="auth-submit" type="submit" disabled={sending}>

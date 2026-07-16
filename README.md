@@ -72,6 +72,23 @@ Development admins can open `/admin/import` to select customer and order CSV fil
 
 Do not upload real customer exports during proof testing. Real import approval, Billing ID reconciliation, the missing January–June 2025 history, and production authentication hardening remain deferred.
 
+## Authenticated GitHub Pages testing
+
+The Pages workflow requires these GitHub repository settings:
+
+- **Variable:** `NEXT_PUBLIC_SUPABASE_URL`
+- **Secret:** `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+Configure them under **Settings → Secrets and variables → Actions**. The deployment fails intentionally if either value is missing, preventing an accidental demo-only public build.
+
+Configure the development Supabase Auth URLs as:
+
+- Site URL: `https://graphicdesigndepartment.github.io/Onward-Tiers-Dashboard/`
+- Redirect URL: `https://graphicdesigndepartment.github.io/Onward-Tiers-Dashboard/**`
+- Local redirect: `http://localhost:3000/**`
+
+Every tester must exist in Supabase Auth and be linked to an anonymized `reward_accounts` record through a profile or company membership. Signed-in but unlinked testers receive an account-setup screen and never see representative customer data.
+
 ## Deployment
 
-Import this repository into the Onward Vercel team using Vercel's GitHub integration. Use preview deployments for review before promoting the production branch or attaching a customer-facing domain.
+GitHub Pages is the authenticated development-testing environment. Production remains deferred until a secure production Supabase project and Vercel/Cloudflare hosting are approved.

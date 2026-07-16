@@ -28,15 +28,18 @@ import {
   HelpCircle,
   Home,
   Info,
+  LoaderCircle,
   LockKeyhole,
   Menu,
   Palette,
   ReceiptText,
+  RefreshCw,
   ShieldCheck,
   Shirt,
   Sparkles,
   Store,
   Trophy,
+  UserRoundX,
   UsersRound,
   WandSparkles,
   X,
@@ -97,6 +100,13 @@ function StatusPill({ children, tone = "teal" }: { children: React.ReactNode; to
 }
 
 export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => void | Promise<void> }) {
+  const isSupabaseConfigured = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  );
+  const [accountLoadState, setAccountLoadState] = useState<"loading" | "ready" | "unlinked" | "error">(
+    isSupabaseConfigured ? "loading" : "ready",
+  );
+  const [accountLoadError, setAccountLoadError] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
   const [expandedBenefit, setExpandedBenefit] = useState<string | null>(null);
@@ -108,17 +118,27 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
   const [snapshot, setSnapshot] = useState(demoDashboardSnapshot);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) return;
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
 
     let active = true;
     loadAuthenticatedDashboard(supabase).then((result) => {
-      if (active && result) setSnapshot(result);
+      if (!active) return;
+      if (result.status === "success") {
+        setSnapshot(result.snapshot);
+        setAccountLoadState("ready");
+      } else if (result.status === "unlinked") {
+        setAccountLoadState("unlinked");
+      } else {
+        setAccountLoadError(result.message);
+        setAccountLoadState("error");
+      }
     });
     return () => {
       active = false;
     };
-  }, []);
+  }, [isSupabaseConfigured]);
 
   const benefits = snapshot.benefits;
   const nonStackableDiscounts = snapshot.nonStackableDiscounts;
@@ -161,6 +181,45 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
     setActiveSection(id);
     setMobileOpen(false);
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  if (accountLoadState === "loading") {
+    return (
+      <main className="auth-page auth-loading" aria-live="polite">
+        <LoaderCircle className="auth-spinner" size={30} />
+        <p>Loading your protected rewards account…</p>
+      </main>
+    );
+  }
+
+  if (accountLoadState === "unlinked") {
+    return (
+      <main className="auth-page">
+        <section className="auth-card account-state-card">
+          <UserRoundX size={36} />
+          <span className="auth-eyebrow">Account setup required</span>
+          <h1>Your sign-in is verified.</h1>
+          <p>This email has not yet been linked to an Onward rewards account. Contact Onward Customs so the account can be assigned safely.</p>
+          <a className="auth-submit" href="mailto:contact@onwardcustoms.com">Contact support <ArrowRight size={17} /></a>
+          {onSignOut ? <button className="account-state-secondary" onClick={() => void onSignOut()}>Sign out</button> : null}
+        </section>
+      </main>
+    );
+  }
+
+  if (accountLoadState === "error") {
+    return (
+      <main className="auth-page">
+        <section className="auth-card account-state-card">
+          <RefreshCw size={34} />
+          <span className="auth-eyebrow">Unable to load rewards</span>
+          <h1>Please try again.</h1>
+          <p>{accountLoadError ?? "The rewards service could not be reached."}</p>
+          <button className="auth-submit" onClick={() => window.location.reload()}><RefreshCw size={17} /> Retry</button>
+          {onSignOut ? <button className="account-state-secondary" onClick={() => void onSignOut()}>Sign out</button> : null}
+        </section>
+      </main>
+    );
   }
 
   return (

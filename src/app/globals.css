@@ -431,6 +431,12 @@ h1, h2, h3 { letter-spacing: -.035em; }
 .auth-success { color: #086d68; background: rgb(32 178 170 / 12%); }
 .auth-error { color: #9b1c1c; background: #fff0f0; }
 .auth-card small { display: block; margin-top: 22px; color: #777; line-height: 1.5; }
+.account-state-card { text-align: center; }
+.account-state-card > svg { margin: 0 auto 18px; color: #0e7e76; }
+.account-state-card .auth-eyebrow { justify-content: center; }
+.account-state-card .auth-submit { width: 100%; text-decoration: none; }
+.account-state-secondary { width: 100%; margin-top: 10px; border: 0; padding: 10px; color: #666; background: transparent; font-weight: 800; cursor: pointer; }
+.account-state-secondary:hover { color: #111; }
 @keyframes auth-spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 520px) {

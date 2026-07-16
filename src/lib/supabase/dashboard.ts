@@ -80,16 +80,25 @@ function formatProtectionDate(value: string | null): string {
   return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`));
 }
 
-export async function loadAuthenticatedDashboard(supabase: SupabaseClient): Promise<DashboardSnapshot | null> {
+export type DashboardLoadResult =
+  | { status: "success"; snapshot: DashboardSnapshot }
+  | { status: "unlinked" }
+  | { status: "error"; message: string };
+
+export async function loadAuthenticatedDashboard(supabase: SupabaseClient): Promise<DashboardLoadResult> {
   const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError || !authData.user) return null;
+  if (authError || !authData.user) {
+    return { status: "error", message: authError?.message ?? "Your authenticated session could not be verified." };
+  }
 
   const { data, error } = await supabase.rpc("get_my_dashboard", {
     p_year: new Date().getFullYear(),
   });
   if (error || !data) {
-    console.error("Unable to load rewards dashboard", error?.message);
-    return null;
+    if (error?.message.toLowerCase().includes("no rewards account") || error?.message.toLowerCase().includes("account is linked")) {
+      return { status: "unlinked" };
+    }
+    return { status: "error", message: error?.message ?? "The rewards account could not be loaded." };
   }
 
   const payload = data as unknown as RpcPayload;
@@ -136,6 +145,8 @@ export async function loadAuthenticatedDashboard(supabase: SupabaseClient): Prom
   }
 
   return {
+    status: "success",
+    snapshot: {
     accountId: payload.account.id,
     displayName: payload.account.displayName,
     firstName: payload.profile.firstName,
@@ -152,5 +163,6 @@ export async function loadAuthenticatedDashboard(supabase: SupabaseClient): Prom
     activity: (payload.activity ?? []).map((row: RpcActivity) => ({ ...row, spend: Number(row.spend), savings: Number(row.savings) })),
     savingsData: (payload.monthlySavings ?? []).map((row: RpcSavings) => ({ month: row.month, savings: Number(row.savings) })),
     source: "supabase",
+    },
   };
 }
