@@ -45,16 +45,18 @@ export async function loadAuthenticatedDashboard(
 
   if (profileError || !profile) return null;
 
-  let accountId = profile.individual_account_id as string | null;
-  if (!accountId) {
-    const { data: membership } = await supabase
-      .from("company_memberships")
-      .select("company_id")
-      .eq("profile_id", authData.user.id)
-      .limit(1)
-      .maybeSingle();
-    accountId = (membership?.company_id as string | undefined) ?? null;
-  }
+  const { data: membership } = await supabase
+    .from("company_memberships")
+    .select("company_id")
+    .eq("profile_id", authData.user.id)
+    .limit(1)
+    .maybeSingle();
+
+  // Company purchases accrue to the company account, so an approved company
+  // membership takes precedence over the user's individual account.
+  const accountId =
+    (membership?.company_id as string | undefined) ??
+    (profile.individual_account_id as string | null);
   if (!accountId) return null;
 
   const currentYear = new Date().getFullYear();

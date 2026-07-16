@@ -104,7 +104,7 @@ function StatusPill({ children, tone = "teal" }: { children: React.ReactNode; to
   return <span className={`status-pill status-${tone}`}>{children}</span>;
 }
 
-export default function CustomerDashboard() {
+export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => void | Promise<void> }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
   const [expandedBenefit, setExpandedBenefit] = useState<string | null>("artwork");
@@ -231,8 +231,13 @@ export default function CustomerDashboard() {
               <Bell size={19} />
               <span aria-hidden="true" />
             </button>
-            <button className="profile-button" onClick={() => notify("Account settings will connect in the live version.")}>
-              <div className="mini-avatar">KS</div>
+            <button
+              className="profile-button"
+              onClick={() => onSignOut ? void onSignOut() : notify("Account settings will connect in the live version.")}
+              aria-label={onSignOut ? "Sign out" : "Open account settings"}
+              title={onSignOut ? "Sign out" : "Account settings"}
+            >
+              <div className="mini-avatar">{snapshot.firstName.slice(0, 2).toUpperCase()}</div>
               <span>{snapshot.firstName}</span>
               <ChevronDown size={15} />
             </button>

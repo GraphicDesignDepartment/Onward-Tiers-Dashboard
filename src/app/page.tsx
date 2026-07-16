@@ -1,5 +1,5 @@
-import CustomerDashboard from "@/components/customer-dashboard";
+import AuthenticatedDashboard from "@/components/authenticated-dashboard";
 
 export default function Home() {
-  return <CustomerDashboard />;
+  return <AuthenticatedDashboard />;
 }
