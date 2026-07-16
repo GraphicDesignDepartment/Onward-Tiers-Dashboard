@@ -2,6 +2,12 @@
 
 Interactive customer-facing rewards dashboard for Onward Customs.
 
+## Live preview
+
+- [GitHub Pages dashboard](https://graphicdesigndepartment.github.io/Onward-Tiers-Dashboard/)
+
+The GitHub Pages deployment is the temporary public preview while Vercel resolves a team-level `live: false` routing state that causes otherwise-ready Vercel deployments to return edge-level `NOT_FOUND` responses.
+
 ## Features
 
 - Beginner, Bronze, Silver, and Gold progress tracking
