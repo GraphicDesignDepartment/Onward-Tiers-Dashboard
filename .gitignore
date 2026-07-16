@@ -30,9 +30,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files and accidentally downloaded Supabase keys
 .env*
 !.env.example
+sb_publishable_*.txt
+sb_secret_*.txt
 
 # vercel
 .vercel
