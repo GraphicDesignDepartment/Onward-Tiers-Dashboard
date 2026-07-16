@@ -19,6 +19,8 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 type AuthState = "checking" | "demo" | "signed-out" | "signed-in" | "recovery";
+const yearWords: Record<number,string> = {1:"ONE",2:"TWO",3:"THREE",4:"FOUR",5:"FIVE",6:"SIX",7:"SEVEN",8:"EIGHT",9:"NINE",10:"TEN"};
+const anniversaryLabel = (years:number) => `${yearWords[years] ?? years}-YEAR ANNIVERSARY`;
 
 export default function AuthenticatedDashboard() {
   const isSupabaseConfigured = Boolean(
@@ -32,11 +34,16 @@ export default function AuthenticatedDashboard() {
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [anniversaryYears, setAnniversaryYears] = useState(2);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
+
+    supabase.from("public_brand_settings").select("anniversary_years").eq("id","signin").single().then(({data}) => {
+      if (data?.anniversary_years) setAnniversaryYears(data.anniversary_years);
+    });
 
     supabase.auth.getSession().then(({ data }) => {
       setAuthState(data.session ? "signed-in" : "signed-out");
@@ -164,11 +171,18 @@ export default function AuthenticatedDashboard() {
   const isRecovery = authState === "recovery";
 
   return (
-    <main className="auth-page auth-page-3d">
-      <div className="auth-orb auth-orb-yellow" aria-hidden="true" />
-      <div className="auth-orb auth-orb-teal" aria-hidden="true" />
-      <section className="auth-card auth-card-3d" aria-labelledby="sign-in-title">
-        <div className="auth-depth-layer" aria-hidden="true" />
+    <main className="auth-page auth-illustrated-page">
+      <section className="auth-art-panel" aria-label="Signs of Life anniversary artwork">
+        <div className="auth-art-stage">
+          <span className="art-orbit" aria-hidden="true" />
+          <span className="art-star art-star-one" aria-hidden="true">✦</span>
+          <span className="art-star art-star-two" aria-hidden="true">✦</span>
+          <span className="art-rocket-glow" aria-hidden="true" />
+          <Image className="signs-artwork" src={`${basePath}/signs-of-life.png`} alt="Signs of Life — On the Moon by Onward Customs" width={1256} height={1568} priority />
+          <span className="anniversary-live-label">{anniversaryLabel(anniversaryYears)}</span>
+        </div>
+      </section>
+      <section className="auth-card auth-login-panel" aria-labelledby="sign-in-title">
         <div className="auth-brand-row">
           <Image src={`${basePath}/onward-logo.png`} alt="Onward Customs" width={190} height={52} priority />
           <span className="auth-shield"><ShieldCheck size={19} /></span>
