@@ -70,6 +70,7 @@ const navItems = [
   { id: "activity", label: "Activity", icon: ReceiptText },
 ];
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const currentSpend = 1640;
 const currentTier = tiers[1];
 const nextTier = tiers[2];
@@ -143,7 +144,7 @@ export default function CustomerDashboard() {
 
       <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`} aria-label="Account navigation">
         <div className="sidebar-brand">
-          <Image src="/onward-logo.png" alt="Onward Customs" width={176} height={48} priority />
+          <Image src={`${basePath}/onward-logo.png`} alt="Onward Customs" width={176} height={48} priority />
           <button className="icon-button mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close navigation">
             <X size={20} />
           </button>
