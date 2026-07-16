@@ -58,7 +58,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_REPLACE_ME
 
 Only the publishable key belongs in browser configuration. Never place `sb_secret_*`, legacy `service_role`, database passwords, customer exports, or production PII in source control.
 
-When the variables are absent, the app intentionally falls back to representative demo data so the static GitHub Pages preview continues to work. Configured development builds present a passwordless email magic-link sign-in screen and load only the individual or company account allowed by Row Level Security.
+When the variables are absent, the app intentionally falls back to representative demo data. Configured deployments use persistent email/password authentication and load only the individual or company account allowed by Row Level Security. Password setup and recovery use Supabase’s verified recovery-email flow; public self-registration remains disabled.
 
 ## Data status
 
@@ -87,7 +87,7 @@ Configure the development Supabase Auth URLs as:
 - Redirect URL: `https://graphicdesigndepartment.github.io/Onward-Tiers-Dashboard/**`
 - Local redirect: `http://localhost:3000/**`
 
-Every tester must exist in Supabase Auth and be linked to an anonymized `reward_accounts` record through a profile or company membership. Signed-in but unlinked testers receive an account-setup screen and never see representative customer data.
+Every tester must exist in Supabase Auth and be linked to an anonymized `reward_accounts` record through a profile or company membership. New testers use **Forgot password** once to choose their password, then sign in normally and remain signed in until explicitly logging out. Signed-in but unlinked testers receive an account-setup screen and never see representative customer data.
 
 ## Deployment
 
