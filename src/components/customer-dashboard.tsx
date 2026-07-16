@@ -43,15 +43,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import {
-  activity,
-  benefits,
-  formatter,
-  nonStackableDiscounts,
-  savingsData,
-  stackableOffers,
-  tiers,
-} from "@/lib/tier-data";
+import { formatter, tiers } from "@/lib/tier-data";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   demoDashboardSnapshot,
@@ -128,6 +120,16 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
     };
   }, []);
 
+  const benefits = snapshot.benefits;
+  const nonStackableDiscounts = snapshot.nonStackableDiscounts;
+  const stackableOffers = snapshot.stackableOffers;
+  const activity = snapshot.activity;
+  const savingsData = snapshot.savingsData;
+  const accountInitials = snapshot.displayName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  const artworkBenefit = benefits.find((benefit) => benefit.id.includes("artwork"));
+  const rushBenefit = benefits.find((benefit) => benefit.id.includes("rush"));
+  const webstoreBenefit = benefits.find((benefit) => benefit.id.includes("webstore"));
+  const artworkRemaining = artworkBenefit?.total == null ? null : artworkBenefit.total - artworkBenefit.used;
   const currentSpend = snapshot.currentYearSpend;
   const currentTier = tiers.find((tier) => tier.id === snapshot.currentTierId) ?? tiers[0];
   const currentTierIndex = tiers.findIndex((tier) => tier.id === currentTier.id);
@@ -146,8 +148,8 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
   const completedReseller = Object.values(resellerChecks).filter(Boolean).length;
 
   const currentDiscount = useMemo(
-    () => nonStackableDiscounts.find((discount) => discount.id === selectedDiscount),
-    [selectedDiscount],
+    () => nonStackableDiscounts.find((discount) => discount.id === selectedDiscount) ?? nonStackableDiscounts[0],
+    [nonStackableDiscounts, selectedDiscount],
   );
 
   function notify(message: string) {
@@ -176,7 +178,7 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
         </div>
 
         <div className="account-chip">
-          <div className="avatar">KS</div>
+          <div className="avatar">{accountInitials}</div>
           <div>
             <strong>{snapshot.displayName}</strong>
             <span>Customer account</span>
@@ -196,7 +198,7 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
               >
                 <Icon size={19} />
                 <span>{item.label}</span>
-                {item.id === "discounts" ? <span className="nav-count">3</span> : null}
+                {item.id === "discounts" ? <span className="nav-count">{nonStackableDiscounts.length}</span> : null}
               </button>
             );
           })}
@@ -226,6 +228,7 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
             <strong>Rewards</strong>
           </div>
           <div className="topbar-actions">
+            {snapshot.role !== "customer" ? <a className="text-link topbar-help" href={`${basePath}/admin/import`}>Import CSV</a> : null}
             <a className="text-link topbar-help" href="mailto:contact@onwardcustoms.com"><HelpCircle size={17} /> Help</a>
             <button className="icon-button notification-button" aria-label="Notifications" onClick={() => notify("You’re all caught up — no new notifications.")}>
               <Bell size={19} />
@@ -265,7 +268,7 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
                   <div className="tier-medallion"><Trophy size={27} /></div>
                   <div>
                     <span className="hero-label">Your current tier</span>
-                    <h2>Onward Plus <em>Bronze</em></h2>
+                    <h2>{currentTier.name}</h2>
                   </div>
                   <StatusPill tone="yellow"><BadgeCheck size={14} /> Active</StatusPill>
                 </div>
@@ -280,12 +283,12 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
                     <b>{Math.round(progressInBand)}%</b>
                   </div>
                 </div>
-                <div className="hero-progress-track" aria-label={`${Math.round(progressInBand)} percent to Silver`}>
+                <div className="hero-progress-track" aria-label={`${Math.round(progressInBand)} percent to ${nextTier.shortName}`}>
                   <motion.span initial={{ width: 0 }} animate={{ width: `${progressInBand}%` }} transition={{ duration: 0.9, ease: "easeOut" }} />
                 </div>
                 <div className="hero-progress-labels">
-                  <span>Bronze · $500</span>
-                  <span>Silver · $2,500</span>
+                  <span>{currentTier.shortName} · {currentTier.threshold === 0 ? "First order" : formatter.format(currentTier.threshold)}</span>
+                  <span>{nextTier.shortName} · {formatter.format(nextTier.threshold)}</span>
                 </div>
                 <p className="protected-copy"><ShieldCheck size={16} /> Your {currentTier.shortName} status is protected through <strong>{snapshot.protectedThrough}</strong>.</p>
               </div>
@@ -293,12 +296,12 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
               <div className="tier-hero-side">
                 <span className="hero-label">Benefits at a glance</span>
                 <div className="glance-stat">
-                  <strong>1.5</strong>
-                  <span>artwork hours remaining</span>
+                  <strong>{artworkRemaining ?? "Included"}</strong>
+                  <span>{artworkRemaining == null ? "artwork support" : "artwork hours remaining"}</span>
                 </div>
                 <div className="glance-grid">
-                  <div><Zap size={17} /><strong>10%</strong><span>off rush fees</span></div>
-                  <div><Store size={17} /><strong>50%</strong><span>off webstores</span></div>
+                  <div><Zap size={17} /><strong>{rushBenefit?.unit ?? "Included"}</strong><span>rush fees</span></div>
+                  <div><Store size={17} /><strong>{webstoreBenefit?.unit ?? "Included"}</strong><span>webstores</span></div>
                 </div>
                 <button className="hero-link" onClick={() => goToSection("benefits")}>Explore all benefits <ArrowRight size={15} /></button>
               </div>
@@ -307,12 +310,12 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
             <div className="stats-row">
               <div className="stat-card">
                 <span className="stat-icon yellow"><CircleDollarSign size={20} /></span>
-                <div><span>Saved this year</span><strong>$159</strong><small>Across 4 qualifying orders</small></div>
-                <span className="trend">+18%</span>
+                <div><span>Saved this year</span><strong>{formatter.format(snapshot.savedThisYear)}</strong><small>Across {snapshot.qualifyingOrderCount} qualifying orders</small></div>
+                <span className="trend">Live</span>
               </div>
               <div className="stat-card">
                 <span className="stat-icon teal"><Gift size={20} /></span>
-                <div><span>Available credit</span><strong>$50</strong><small>From one completed referral</small></div>
+                <div><span>Available credit</span><strong>{formatter.format(snapshot.availableCredit)}</strong><small>Net unexpired reward balance</small></div>
                 <ChevronRight size={18} />
               </div>
               <div className="stat-card">
@@ -355,7 +358,7 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
             <SectionHeading
               eyebrow="Benefit wallet"
               title="Built-in value, ready when you are."
-              description="Track the benefits included with your current Bronze tier."
+              description={`Track the benefits included with your current ${currentTier.shortName} tier.`}
               action={<button className="text-link" onClick={() => setSelectedTier("comparison")}>View all tier benefits <ArrowRight size={15} /></button>}
             />
             <div className="benefit-grid">
@@ -477,7 +480,7 @@ export default function CustomerDashboard({ onSignOut }: { onSignOut?: () => voi
             />
             <div className="activity-layout">
               <div className="chart-card">
-                <div className="chart-header"><div><span>Savings this year</span><strong>$159</strong></div><StatusPill tone="yellow">+18% vs. last year</StatusPill></div>
+                <div className="chart-header"><div><span>Savings this year</span><strong>{formatter.format(snapshot.savedThisYear)}</strong></div><StatusPill tone="yellow">Database verified</StatusPill></div>
                 <div className="chart-wrap" aria-label="Monthly savings chart">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={savingsData} margin={{ top: 10, right: 0, left: -22, bottom: 0 }}>

@@ -424,3 +424,25 @@ h1, h2, h3 { letter-spacing: -.035em; }
 @media (max-width: 520px) {
   .auth-card { padding: 30px 22px; border-radius: 18px; }
 }
+
+.import-page { min-height: 100vh; padding: 42px 20px; color: #242424; background: #f5f5f2; }
+.import-shell, .import-panel { width: min(100%, 1080px); margin: 0 auto; padding: 38px; border: 1px solid #e2e2df; border-radius: 22px; background: #fff; box-shadow: 0 18px 55px rgb(0 0 0 / 8%); }
+.import-panel { max-width: 520px; text-align: center; }
+.import-panel a, .import-back { display: inline-flex; align-items: center; gap: 7px; color: #087b76; font-weight: 800; text-decoration: none; }
+.import-back { margin-bottom: 32px; }
+.import-shell h1 { margin: 12px 0 10px; font-family: var(--font-display), sans-serif; font-size: clamp(32px, 5vw, 52px); line-height: 1; }
+.import-intro { max-width: 760px; color: #626262; line-height: 1.65; }
+.import-warning { display: flex; align-items: center; gap: 10px; margin: 24px 0; padding: 14px 16px; border-radius: 10px; color: #7b5000; background: #fff5cc; }
+.upload-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 25px 0; }
+.upload-card { min-height: 150px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 9px; padding: 24px; border: 2px dashed #c8c8c3; border-radius: 15px; background: #fafaf8; cursor: pointer; text-align: center; }
+.upload-card:hover { border-color: #20b2aa; background: rgb(32 178 170 / 5%); }
+.upload-card span { color: #737373; font-size: 13px; }
+.upload-card input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.preview-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: 20px 0; }
+.preview-grid div { padding: 16px 12px; border: 1px solid #e6e6e6; border-radius: 12px; background: #fafafa; }
+.preview-grid span { display: block; min-height: 32px; color: #6b6b6b; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.preview-grid strong { font-size: 26px; }
+.import-stage { border: 0; cursor: pointer; }
+.import-stage:disabled { opacity: .5; cursor: not-allowed; }
+.run-id { display: block; margin-top: 12px; color: #777; overflow-wrap: anywhere; }
+@media (max-width: 760px) { .import-shell { padding: 28px 18px; } .upload-grid { grid-template-columns: 1fr; } .preview-grid { grid-template-columns: repeat(2, 1fr); } }

@@ -62,9 +62,15 @@ When the variables are absent, the app intentionally falls back to representativ
 
 ## Data status
 
-Supabase currently contains anonymized proof data matching the provisional distribution of 3 Gold, 7 Silver, 44 Bronze, 248 Beginner, and 2 no-tier accounts. No names, emails, addresses, telephone numbers, or order numbers from the supplied DecoNetwork exports were imported.
+Supabase currently contains anonymized proof data matching the provisional distribution of 3 Gold, 7 Silver, 44 Bronze, 248 Beginner, and 2 no-tier accounts. Vincent’s development profile is linked to a fictional Bronze company with four qualifying orders, $750 annual spend, benefit usage, discounts, savings, and ledger credit. No names, addresses, telephone numbers, or order numbers from the supplied DecoNetwork exports were imported.
 
-Real customer import, Billing ID reconciliation, the missing January–June 2025 history, production authentication hardening, and the staff CSV upload interface remain deferred until the proof is approved.
+Authenticated customer views now load tier, spend, protection, summary cards, benefits, discounts, monthly savings, credits, and recent activity from the `get_my_dashboard` RPC.
+
+## CSV Import Center
+
+Development admins can open `/admin/import` to select customer and order CSV files, validate headers and rows locally, calculate paid/Onward-Blanks counts, hash the source, and create a staff-protected dry-run staging record. Staging and approval functions enforce the staff role in PostgreSQL and use idempotent order upserts.
+
+Do not upload real customer exports during proof testing. Real import approval, Billing ID reconciliation, the missing January–June 2025 history, and production authentication hardening remain deferred.
 
 ## Deployment
 
