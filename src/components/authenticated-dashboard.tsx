@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type { Session } from "@supabase/supabase-js";
 import { FormEvent, useEffect, useState } from "react";
 import {
   ArrowRight,
@@ -39,23 +40,20 @@ export default function AuthenticatedDashboard() {
     if (!isSupabaseConfigured) return;
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
+    const client = supabase;
 
-    supabase.auth.getSession().then(({ data }) => {
-      setAuthState(data.session ? "signed-in" : "signed-out");
-      if (data.session?.user.email) setEmail(data.session.user.email);
-    });
+    async function applySession(session: Session | null, recoveryEvent = false) {
+      if (!session) { setAuthState("signed-out"); return; }
+      if (session.user.email) setEmail(session.user.email);
+      if (recoveryEvent) { setAuthState("recovery"); return; }
+      const { data: requiresSetup } = await client.rpc("my_onboarding_requires_password");
+      setAuthState(requiresSetup ? "recovery" : "signed-in");
+    }
+
+    supabase.auth.getSession().then(({ data }) => void applySession(data.session));
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setAuthState("recovery");
-        return;
-      }
-      if (!session) {
-        setAuthState("signed-out");
-        return;
-      }
-      if (session.user.email) setEmail(session.user.email);
-      setAuthState((current) => current === "recovery" ? current : "signed-in");
+      void applySession(session, event === "PASSWORD_RECOVERY");
     });
 
     return () => listener.subscription.unsubscribe();
@@ -125,6 +123,7 @@ export default function AuthenticatedDashboard() {
       setError(updateError.message);
       return;
     }
+    await supabase.rpc("mark_my_onboarding_accepted");
     setPassword("");
     setConfirmPassword("");
     setMessage("Password updated successfully.");

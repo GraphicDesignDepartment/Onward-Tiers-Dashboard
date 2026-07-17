@@ -136,7 +136,6 @@ export default function CustomerDashboard({
     loadAuthenticatedDashboard(supabase).then(async (result) => {
       if (!active) return;
       if (result.status === "success") {
-        void supabase.rpc("mark_my_onboarding_accepted");
         setSnapshot(result.snapshot);
         const { data: request } = await supabase.from("verification_requests").select("status").eq("account_id", result.snapshot.accountId).eq("program", "reseller_decorator").maybeSingle();
         if (active && request?.status) setResellerStatus(request.status);
@@ -178,6 +177,7 @@ export default function CustomerDashboard({
           ((currentSpend - currentTier.threshold) / (nextTier.threshold - currentTier.threshold)) * 100,
         ),
       );
+  const journeyProgress = Math.min(100, ((currentTierIndex + (isTopTier ? 0 : progressInBand / 100)) / (tiers.length - 1)) * 100);
   const completedReseller = Object.values(resellerChecks).filter(Boolean).length;
 
   const currentDiscount = useMemo(
@@ -430,7 +430,7 @@ export default function CustomerDashboard({
               action={<button className="secondary-button" onClick={() => setSelectedTier("comparison")}>Compare all tiers</button>}
             />
             <div className="tier-track-card">
-              <div className="tier-track-line"><motion.span initial={{ width: 0 }} animate={{ width: `${Math.min(100, (currentSpend / tiers[tiers.length - 1].threshold) * 100)}%` }} transition={{ duration: 1.1 }} /></div>
+              <div className="tier-track-line"><motion.span initial={{ width: 0 }} animate={{ width: `${journeyProgress}%` }} transition={{ duration: 1.1 }} /></div>
               <div className="tier-nodes">
                 {tiers.map((tier) => {
                   const achieved = currentSpend >= tier.threshold;

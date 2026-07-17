@@ -1,0 +1,3 @@
+create or replace function public.my_onboarding_requires_password() returns boolean language sql stable security definer set search_path=public as $$select exists(select 1 from public.onboarding_invites where auth_user_id=auth.uid() and status='invited');$$;
+revoke execute on function public.my_onboarding_requires_password() from public,anon;grant execute on function public.my_onboarding_requires_password() to authenticated;
+update public.onboarding_invites i set status='invited',accepted_at=null from auth.users u where u.id=i.auth_user_id and i.status='accepted' and coalesce(u.encrypted_password,'')='';
