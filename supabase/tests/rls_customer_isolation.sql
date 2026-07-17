@@ -1,7 +1,10 @@
--- Run against development after at least one accepted anonymized onboarding invite.
+-- Self-contained rollback-only authenticated customer isolation proof.
 begin;
-select set_config('test.tester_id',(select auth_user_id::text from public.onboarding_invites where status='accepted' order by accepted_at desc limit 1),true);
-select set_config('test.tester_account',(select account_id::text from public.onboarding_invites where status='accepted' order by accepted_at desc limit 1),true);
+insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)values(md5('rls-local-user')::uuid,'authenticated','authenticated','rls-fixture@example.invalid','',now(),'{"provider":"email","providers":["email"]}','{}',now(),now())on conflict(id)do nothing;
+insert into public.reward_accounts(id,kind,display_name,normalized_key)values(md5('rls-local-account')::uuid,'individual','RLS Test Account','rls-test-account')on conflict(id)do nothing;
+insert into public.profiles(id,individual_account_id,display_name,role)values(md5('rls-local-user')::uuid,md5('rls-local-account')::uuid,'RLS Test User','customer')on conflict(id)do update set individual_account_id=excluded.individual_account_id,role='customer';
+select set_config('test.tester_id',md5('rls-local-user')::uuid::text,true);
+select set_config('test.tester_account',md5('rls-local-account')::uuid::text,true);
 select set_config('request.jwt.claim.sub',current_setting('test.tester_id'),true);
 select set_config('request.jwt.claim.role','authenticated',true);
 set local role authenticated;

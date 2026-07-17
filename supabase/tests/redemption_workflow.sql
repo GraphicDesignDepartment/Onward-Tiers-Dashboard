@@ -1,0 +1,13 @@
+-- Self-contained rollback-only FIFO redemption and correction proof.
+begin;
+insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)values(md5('redemption-local-admin')::uuid,'authenticated','authenticated','redemption-fixture@example.invalid','',now(),'{"provider":"email","providers":["email"]}','{}',now(),now())on conflict(id)do nothing;
+insert into public.reward_accounts(id,kind,display_name,normalized_key)values(md5('redemption-local-account')::uuid,'individual','Redemption Test Account','redemption-test-account')on conflict(id)do nothing;
+insert into public.profiles(id,individual_account_id,display_name,role)values(md5('redemption-local-admin')::uuid,md5('redemption-local-account')::uuid,'Redemption Test Admin','admin')on conflict(id)do update set individual_account_id=excluded.individual_account_id,role='admin';
+insert into public.reward_ledger(id,account_id,reward_type,amount,description,expires_at)values(md5('redemption-early')::uuid,md5('redemption-local-account')::uuid,'reward_credit_usd',10,'Early credit',now()+interval'10 days'),(md5('redemption-late')::uuid,md5('redemption-local-account')::uuid,'reward_credit_usd',20,'Late credit',now()+interval'30 days');
+select set_config('request.jwt.claim.sub',md5('redemption-local-admin')::uuid::text,true);select set_config('request.jwt.claim.role','authenticated',true);set local role authenticated;
+select set_config('test.request',public.submit_credit_redemption(md5('redemption-local-account')::uuid,15,'Automated FIFO test','TEST-ORDER',gen_random_uuid())::text,true);
+select public.review_redemption_request(current_setting('test.request')::uuid,'approved','Automated approval');select public.fulfill_redemption_request(current_setting('test.request')::uuid,'Applied to TEST-ORDER');
+do $$declare early numeric;late numeric;balance numeric;begin select amount into early from public.reward_credit_allocations where source_credit_id=md5('redemption-early')::uuid;select amount into late from public.reward_credit_allocations where source_credit_id=md5('redemption-late')::uuid;balance:=public.available_reward_credit(md5('redemption-local-account')::uuid);if early<>10 or late<>5 or balance<>15 then raise exception'FIFO allocation failed: %, %, %',early,late,balance;end if;end$$;
+select public.correct_redemption_request(current_setting('test.request')::uuid,5,'Automated partial correction');
+do $$begin if public.available_reward_credit(md5('redemption-local-account')::uuid)<>20 then raise exception'Correction balance failed';end if;end$$;
+rollback;
