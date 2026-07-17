@@ -56,6 +56,8 @@ import {
   type DashboardSnapshot,
 } from "@/lib/supabase/dashboard";
 
+type RedemptionRequest = { id:string; kind:"benefit"|"credit"; benefit_id:string|null; quantity:number; status:"submitted"|"approved"|"rejected"|"cancelled"|"fulfilled"; customer_notes:string; order_reference:string|null; created_at:string; benefit_definitions:{name:string}|null };
+
 const iconMap: Record<string, LucideIcon> = {
   palette: Palette,
   wand: WandSparkles,
@@ -127,6 +129,13 @@ export default function CustomerDashboard({
   const [resellerStatus, setResellerStatus] = useState<"draft" | "submitted" | "approved" | "rejected" | "needs_information">("draft");
   const [resellerSubmitting, setResellerSubmitting] = useState(false);
   const [snapshot, setSnapshot] = useState(demoDashboardSnapshot);
+  const [redemptionRequests, setRedemptionRequests] = useState<RedemptionRequest[]>([]);
+  const [redemptionKind, setRedemptionKind] = useState<"benefit" | "credit" | null>(null);
+  const [requestBenefitTarget, setRequestBenefitTarget] = useState<DashboardSnapshot["benefits"][number] | null>(null);
+  const [requestQuantity, setRequestQuantity] = useState("1");
+  const [requestNotes, setRequestNotes] = useState("");
+  const [requestReference, setRequestReference] = useState("");
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -140,6 +149,8 @@ export default function CustomerDashboard({
         setSnapshot(result.snapshot);
         const { data: request } = await supabase.from("verification_requests").select("status").eq("account_id", result.snapshot.accountId).eq("program", "reseller_decorator").maybeSingle();
         if (active && request?.status) setResellerStatus(request.status);
+        const { data: redemptions } = await supabase.from("redemption_requests").select("id,kind,benefit_id,quantity,status,customer_notes,order_reference,created_at,benefit_definitions(name)").eq("account_id", result.snapshot.accountId).order("created_at", { ascending: false });
+        if (active) setRedemptionRequests((redemptions ?? []) as unknown as RedemptionRequest[]);
         setAccountLoadState("ready");
       } else if (result.status === "unlinked") {
         setAccountLoadState("unlinked");
@@ -180,6 +191,8 @@ export default function CustomerDashboard({
       );
   const journeyProgress = Math.min(100, ((currentTierIndex + (isTopTier ? 0 : progressInBand / 100)) / (tiers.length - 1)) * 100);
   const completedReseller = Object.values(resellerChecks).filter(Boolean).length;
+  const reservedCredit = redemptionRequests.filter((request) => request.kind === "credit" && ["submitted", "approved"].includes(request.status)).reduce((sum, request) => sum + Number(request.quantity), 0);
+  const spendableCredit = Math.max(0, snapshot.availableCredit - reservedCredit);
 
   const currentDiscount = useMemo(
     () => nonStackableDiscounts.find((discount) => discount.id === selectedDiscount) ?? nonStackableDiscounts[0],
@@ -197,27 +210,23 @@ export default function CustomerDashboard({
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  async function requestBenefit(benefit: DashboardSnapshot["benefits"][number]) {
-    if (!snapshot.accountId) return;
-    const remaining = benefit.total == null ? 1 : Math.max(0, benefit.total - benefit.used);
-    const quantityText = window.prompt(`How many ${benefit.unit} would you like to request?`, String(Math.min(1, remaining)));
-    if (!quantityText) return;
-    const quantity = Number(quantityText);
-    if (!Number.isFinite(quantity) || quantity <= 0) { notify("Enter a valid quantity."); return; }
-    const notes = window.prompt("Tell the Onward team how you would like to use this benefit.", "") ?? "";
-    const { error } = await getSupabaseBrowserClient()!.rpc("submit_benefit_redemption", { p_account_id: snapshot.accountId, p_benefit_id: benefit.id, p_quantity: quantity, p_notes: notes, p_idempotency_key: crypto.randomUUID() });
-    notify(error ? error.message : "Benefit request submitted for staff review.");
+  function requestBenefit(benefit: DashboardSnapshot["benefits"][number]) {
+    setRequestBenefitTarget(benefit); setRequestQuantity("1"); setRequestNotes(""); setRequestReference(""); setRedemptionKind("benefit");
   }
-
-  async function requestCredit() {
-    if (!snapshot.accountId || snapshot.availableCredit <= 0) { notify("No reward credit is currently available."); return; }
-    const amountText = window.prompt("How much reward credit would you like Onward to apply?", String(snapshot.availableCredit));
-    if (!amountText) return;
-    const amount = Number(amountText);
-    const reference = window.prompt("Optional order number or reference", "") ?? "";
-    const { error } = await getSupabaseBrowserClient()!.rpc("submit_credit_redemption", { p_account_id: snapshot.accountId, p_amount: amount, p_notes: "Customer credit request", p_order_reference: reference, p_idempotency_key: crypto.randomUUID() });
-    notify(error ? error.message : "Credit request submitted for staff review.");
+  function requestCredit() {
+    const available = snapshot.availableCredit - redemptionRequests.filter(r => r.kind === "credit" && ["submitted","approved"].includes(r.status)).reduce((sum,r) => sum + Number(r.quantity), 0);
+    if (available <= 0) { notify("No unreserved reward credit is currently available."); return; }
+    setRequestBenefitTarget(null); setRequestQuantity(String(available)); setRequestNotes(""); setRequestReference(""); setRedemptionKind("credit");
   }
+  async function submitRedemption(event: React.FormEvent) {
+    event.preventDefault(); if (!snapshot.accountId || !redemptionKind) return;
+    const quantity=Number(requestQuantity); if(!Number.isFinite(quantity)||quantity<=0){notify("Enter a valid amount.");return}
+    setRequestSubmitting(true); const supabase=getSupabaseBrowserClient()!;
+    const result=redemptionKind==="benefit"&&requestBenefitTarget?await supabase.rpc("submit_benefit_redemption",{p_account_id:snapshot.accountId,p_benefit_id:requestBenefitTarget.id,p_quantity:quantity,p_notes:requestNotes,p_idempotency_key:crypto.randomUUID()}):await supabase.rpc("submit_credit_redemption",{p_account_id:snapshot.accountId,p_amount:quantity,p_notes:requestNotes,p_order_reference:requestReference||null,p_idempotency_key:crypto.randomUUID()});
+    setRequestSubmitting(false); if(result.error){notify(result.error.message);return} setRedemptionKind(null);
+    const {data}=await supabase.from("redemption_requests").select("id,kind,benefit_id,quantity,status,customer_notes,order_reference,created_at,benefit_definitions(name)").eq("account_id",snapshot.accountId).order("created_at",{ascending:false}); setRedemptionRequests((data??[])as unknown as RedemptionRequest[]); notify("Request submitted for staff review.");
+  }
+  async function cancelRedemption(id:string){const supabase=getSupabaseBrowserClient()!;const{error}=await supabase.rpc("cancel_redemption_request",{p_id:id});if(error){notify(error.message);return}setRedemptionRequests(rows=>rows.map(row=>row.id===id?{...row,status:"cancelled"}:row));notify("Request cancelled.")}
 
   async function submitResellerApplication() {
     if (!snapshot.accountId) return;
@@ -434,7 +443,7 @@ export default function CustomerDashboard({
               </div>
               <button className="stat-card stat-card-button" onClick={() => void requestCredit()}>
                 <span className="stat-icon teal"><Gift size={20} /></span>
-                <div><span>Available credit</span><strong>{formatter.format(snapshot.availableCredit)}</strong><small>Request credit for an order</small></div>
+                <div><span>Available credit</span><strong>{formatter.format(spendableCredit)}</strong><small>{reservedCredit ? `${formatter.format(reservedCredit)} reserved` : "Request credit for an order"}</small></div>
                 <ChevronRight size={18} />
               </button>
               <div className="stat-card">
@@ -590,6 +599,16 @@ export default function CustomerDashboard({
             </div>
           </section>
 
+          <section className="content-section" aria-labelledby="requests-title">
+            <SectionHeading eyebrow="Requests" title="Your benefit and credit requests." description="Track staff review and fulfillment without contacting support for an update." />
+            <div className="request-history" id="requests-title">
+              {redemptionRequests.length ? redemptionRequests.map((request) => <article className="request-history-row" key={request.id}>
+                <div><strong>{request.kind === "credit" ? `${formatter.format(Number(request.quantity))} reward credit` : request.benefit_definitions?.name ?? "Tier benefit"}</strong><small>{new Date(request.created_at).toLocaleDateString()} · {request.customer_notes || request.order_reference || "No notes"}</small></div>
+                <div><StatusPill tone={request.status === "fulfilled" || request.status === "approved" ? "teal" : request.status === "submitted" ? "yellow" : "neutral"}>{request.status.replace("_", " ")}</StatusPill>{request.status === "submitted" ? <button className="text-link" onClick={() => void cancelRedemption(request.id)}>Cancel</button> : null}</div>
+              </article>) : <div className="request-empty"><Gift size={22}/><div><strong>No requests yet</strong><p>Request an included benefit or apply reward credit to an order when you are ready.</p></div></div>}
+            </div>
+          </section>
+
           <section id="activity" className="content-section" aria-labelledby="activity-title">
             <SectionHeading
               eyebrow="Activity & savings"
@@ -645,6 +664,21 @@ export default function CustomerDashboard({
             <CheckCircle2 size={19} /> {toast}
           </motion.div>
         ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {redemptionKind ? <motion.div className="modal-backdrop" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onMouseDown={()=>!requestSubmitting&&setRedemptionKind(null)}>
+          <motion.form className="redemption-modal" onSubmit={submitRedemption} role="dialog" aria-modal="true" aria-labelledby="redemption-title" initial={{opacity:0,y:22,scale:.98}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:12}} onMouseDown={event=>event.stopPropagation()}>
+            <button type="button" className="icon-button modal-close" onClick={()=>setRedemptionKind(null)} aria-label="Close request"><X size={20}/></button>
+            <span className="eyebrow">Staff-assisted redemption</span><h2 id="redemption-title">{redemptionKind==="credit"?"Use reward credit":requestBenefitTarget?.title}</h2>
+            <p className="modal-intro">Onward will review your request before applying it. Nothing is deducted until fulfillment.</p>
+            <label className="redemption-field"><span>{redemptionKind==="credit"?"Credit amount":"Quantity"}</span><div className="redemption-input-wrap">{redemptionKind==="credit"?<b>$</b>:null}<input type="number" min="0.01" step={redemptionKind==="credit"?"0.01":"1"} value={requestQuantity} onChange={event=>setRequestQuantity(event.target.value)} required/></div><small>{redemptionKind==="credit"?`${formatter.format(spendableCredit)} currently available`:requestBenefitTarget?.total==null?"Included benefit":`${Math.max(0,requestBenefitTarget.total-requestBenefitTarget.used)} ${requestBenefitTarget.unit} remaining before reservations`}</small></label>
+            {redemptionKind==="credit"?<label className="redemption-field"><span>Order number or reference <small>Optional</small></span><input value={requestReference} onChange={event=>setRequestReference(event.target.value)} placeholder="Example: OC-1042"/></label>:null}
+            <label className="redemption-field"><span>How can we help?</span><textarea rows={4} value={requestNotes} onChange={event=>setRequestNotes(event.target.value)} placeholder="Add details the Onward team needs to fulfill this request."/></label>
+            <div className="redemption-assurance"><ShieldCheck size={18}/><span>Requests reserve availability while under review and are protected by your authenticated account.</span></div>
+            <button className="primary-button full-width" disabled={requestSubmitting}>{requestSubmitting?<><LoaderCircle className="auth-spinner" size={17}/>Submitting…</>:<>Submit request <ArrowRight size={17}/></>}</button>
+          </motion.form>
+        </motion.div>:null}
       </AnimatePresence>
 
       <AnimatePresence>
