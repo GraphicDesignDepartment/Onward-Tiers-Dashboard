@@ -37,5 +37,8 @@ begin
   if (select count(*) from public.orders where account_id=md5('onward-demo-account-12')::uuid and extract(year from ordered_at)=2026 and qualifying_spend>0) <> 4 then
     raise exception 'Vincent proof must contain four qualifying orders';
   end if;
+  if not exists(select 1 from public.tier_definitions where id='platinum' and annual_threshold=15000 and rank=5) then
+    raise exception 'Platinum tier must begin at 15000';
+  end if;
 end;
 $$;

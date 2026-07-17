@@ -66,9 +66,11 @@ Supabase currently contains anonymized proof data matching the provisional distr
 
 Authenticated customer views now load tier, spend, protection, summary cards, benefits, discounts, monthly savings, credits, and recent activity from the `get_my_dashboard` RPC.
 
-## CSV Import Center
+## Staff administration
 
-Development admins can open `/admin/import` to select customer and order CSV files, validate headers and rows locally, calculate paid/Onward-Blanks counts, hash the source, and create a staff-protected dry-run staging record. Staging and approval functions enforce the staff role in PostgreSQL and use idempotent order upserts.
+Customer-facing navigation contains no staff controls. Development staff open `/admin` directly to review persisted Reseller/Decorator applications or continue to `/admin/import` for CSV tools. Both routes enforce staff/admin access through Supabase roles and RLS.
+
+The CSV Import Center validates headers and rows locally, calculates paid/Onward-Blanks counts, hashes the source, and creates a staff-protected dry-run staging record. Staging and approval functions enforce the staff role in PostgreSQL and use idempotent order upserts.
 
 Do not upload real customer exports during proof testing. Real import approval, Billing ID reconciliation, the missing January–June 2025 history, and production authentication hardening remain deferred.
 

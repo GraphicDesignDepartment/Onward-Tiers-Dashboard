@@ -1,4 +1,4 @@
-export type TierId = "beginner" | "bronze" | "silver" | "gold";
+export type TierId = "beginner" | "bronze" | "silver" | "gold" | "platinum";
 
 export type Tier = {
   id: TierId;
@@ -73,7 +73,7 @@ export const tiers: Tier[] = [
     threshold: 5000,
     discount: 10,
     accent: "#FFC500",
-    description: "The highest level of Onward service and value.",
+    description: "Corporate-level service, savings and account support.",
     benefits: [
       "12 total free artwork hours per calendar year",
       "50% off rush-order fees",
@@ -82,6 +82,23 @@ export const tiers: Tier[] = [
       "10% non-stackable discount on eligible non-webstore orders",
       "2 site visits per calendar year",
       "2 garment samples per calendar year",
+    ],
+  },
+  {
+    id: "platinum",
+    name: "Onward Industrial — Platinum",
+    shortName: "Platinum",
+    threshold: 15000,
+    discount: 10,
+    accent: "#57E1D9",
+    description: "Our highest industrial partnership tier.",
+    benefits: [
+      "Everything included with Gold",
+      "24 total free artwork hours per calendar year",
+      "75% off rush-order fees",
+      "4 site visits per calendar year",
+      "4 garment samples per calendar year",
+      "10% off webstore listings",
     ],
   },
 ];

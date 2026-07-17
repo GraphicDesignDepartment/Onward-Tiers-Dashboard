@@ -123,7 +123,8 @@ export default function CustomerDashboard({
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [resellerChecks, setResellerChecks] = useState({ license: true, decorator: true, spend: true });
-  const [resellerStatus, setResellerStatus] = useState<"draft" | "submitted">("draft");
+  const [resellerStatus, setResellerStatus] = useState<"draft" | "submitted" | "approved" | "rejected" | "needs_information">("draft");
+  const [resellerSubmitting, setResellerSubmitting] = useState(false);
   const [snapshot, setSnapshot] = useState(demoDashboardSnapshot);
 
   useEffect(() => {
@@ -132,10 +133,12 @@ export default function CustomerDashboard({
     if (!supabase) return;
 
     let active = true;
-    loadAuthenticatedDashboard(supabase).then((result) => {
+    loadAuthenticatedDashboard(supabase).then(async (result) => {
       if (!active) return;
       if (result.status === "success") {
         setSnapshot(result.snapshot);
+        const { data: request } = await supabase.from("verification_requests").select("status").eq("account_id", result.snapshot.accountId).eq("program", "reseller_decorator").maybeSingle();
+        if (active && request?.status) setResellerStatus(request.status);
         setAccountLoadState("ready");
       } else if (result.status === "unlinked") {
         setAccountLoadState("unlinked");
@@ -190,6 +193,18 @@ export default function CustomerDashboard({
     setActiveSection(id);
     setMobileOpen(false);
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function submitResellerApplication() {
+    if (!snapshot.accountId) return;
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+    setResellerSubmitting(true);
+    const { error } = await supabase.rpc("submit_reseller_application", { p_account_id: snapshot.accountId, p_requirements: resellerChecks });
+    setResellerSubmitting(false);
+    if (error) { notify(`Application could not be submitted: ${error.message}`); return; }
+    setResellerStatus("submitted");
+    notify("Reseller application submitted for staff review.");
   }
 
   if (accountLoadState === "loading") {
@@ -296,7 +311,6 @@ export default function CustomerDashboard({
             <strong>Rewards</strong>
           </div>
           <div className="topbar-actions">
-            {snapshot.role !== "customer" ? <a className="text-link topbar-help" href={`${basePath}/admin/import`}>Import CSV</a> : null}
             <a className="text-link topbar-help" href="mailto:contact@onwardcustoms.com"><HelpCircle size={17} /> Help</a>
             <button className="icon-button notification-button" aria-label="Notifications" onClick={() => notify("You’re all caught up — no new notifications.")}>
               <Bell size={19} />
@@ -412,9 +426,9 @@ export default function CustomerDashboard({
               action={<button className="secondary-button" onClick={() => setSelectedTier("comparison")}>Compare all tiers</button>}
             />
             <div className="tier-track-card">
-              <div className="tier-track-line"><motion.span initial={{ width: 0 }} animate={{ width: `${Math.min(100, (currentSpend / 5000) * 100)}%` }} transition={{ duration: 1.1 }} /></div>
+              <div className="tier-track-line"><motion.span initial={{ width: 0 }} animate={{ width: `${Math.min(100, (currentSpend / tiers[tiers.length - 1].threshold) * 100)}%` }} transition={{ duration: 1.1 }} /></div>
               <div className="tier-nodes">
-                {tiers.map((tier, index) => {
+                {tiers.map((tier) => {
                   const achieved = currentSpend >= tier.threshold;
                   const isCurrent = tier.id === currentTier.id;
                   return (
@@ -424,7 +438,7 @@ export default function CustomerDashboard({
                       </span>
                       <strong>{tier.shortName}</strong>
                       <small>{tier.threshold === 0 ? "First order" : formatter.format(tier.threshold)}</small>
-                      {isCurrent ? <em>You are here</em> : index === 2 ? <em className="next-label">Next</em> : null}
+                      {isCurrent ? <em>You are here</em> : tier.id === nextTier.id ? <em className="next-label">Next</em> : null}
                     </button>
                   );
                 })}
@@ -539,10 +553,10 @@ export default function CustomerDashboard({
                 })}
                 <button
                   className="primary-button full-width"
-                  disabled={completedReseller < 2 || resellerStatus === "submitted"}
-                  onClick={() => { setResellerStatus("submitted"); notify("Reseller application submitted for review."); }}
+                  disabled={completedReseller < 2 || resellerSubmitting || resellerStatus === "submitted" || resellerStatus === "approved"}
+                  onClick={() => void submitResellerApplication()}
                 >
-                  {resellerStatus === "submitted" ? <><CheckCircle2 size={17} /> Application submitted</> : <>Continue application <ArrowRight size={17} /></>}
+                  {resellerSubmitting ? <>Submitting…</> : resellerStatus === "approved" ? <><CheckCircle2 size={17} /> Application approved</> : resellerStatus === "submitted" ? <><CheckCircle2 size={17} /> Application submitted</> : resellerStatus === "needs_information" ? <>Update application <ArrowRight size={17} /></> : <>Submit application <ArrowRight size={17} /></>}
                 </button>
                 <p className="fine-print"><ShieldCheck size={14} /> Documents will be handled securely in the connected production version.</p>
               </div>
