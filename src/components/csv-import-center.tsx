@@ -5,7 +5,6 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import Papa from "papaparse";
 import { ArrowLeft, CheckCircle2, FileSpreadsheet, LoaderCircle, ShieldAlert, Upload } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import BrandSettings from "@/components/brand-settings";
 
 type CsvRow = Record<string, string>;
 type FileState = { name: string; text: string; rows: CsvRow[]; fields: string[]; errors: string[] } | null;
@@ -122,7 +121,6 @@ export default function CsvImportCenter() {
         <span className="auth-eyebrow"><FileSpreadsheet size={15} /> Deco CSV Import Center</span>
         <h1>Validate before anything counts.</h1>
         <p className="import-intro">Development proof only. Use anonymized exports. Files are parsed locally, then validated staging rows are protected by staff-only RLS.</p>
-        <BrandSettings />
         <div className="import-warning"><ShieldAlert size={19} /><strong>Real customer files are not approved for import yet.</strong></div>
 
         <div className="upload-grid">

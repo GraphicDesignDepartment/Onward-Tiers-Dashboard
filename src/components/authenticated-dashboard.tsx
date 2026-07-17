@@ -7,11 +7,13 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  Gift,
   KeyRound,
   LoaderCircle,
   LockKeyhole,
   ShieldCheck,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 import CustomerDashboard from "@/components/customer-dashboard";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -19,8 +21,6 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 type AuthState = "checking" | "demo" | "signed-out" | "signed-in" | "recovery";
-const yearWords: Record<number,string> = {1:"ONE",2:"TWO",3:"THREE",4:"FOUR",5:"FIVE",6:"SIX",7:"SEVEN",8:"EIGHT",9:"NINE",10:"TEN"};
-const anniversaryLabel = (years:number) => `${yearWords[years] ?? years}-YEAR ANNIVERSARY`;
 
 export default function AuthenticatedDashboard() {
   const isSupabaseConfigured = Boolean(
@@ -34,16 +34,11 @@ export default function AuthenticatedDashboard() {
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [anniversaryYears, setAnniversaryYears] = useState(2);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
-
-    supabase.from("public_brand_settings").select("anniversary_years").eq("id","signin").single().then(({data}) => {
-      if (data?.anniversary_years) setAnniversaryYears(data.anniversary_years);
-    });
 
     supabase.auth.getSession().then(({ data }) => {
       setAuthState(data.session ? "signed-in" : "signed-out");
@@ -172,15 +167,18 @@ export default function AuthenticatedDashboard() {
 
   return (
     <main className="auth-page auth-illustrated-page">
-      <section className="auth-art-panel" aria-label="Signs of Life anniversary artwork">
-        <div className="auth-art-stage">
-          <span className="art-orbit" aria-hidden="true" />
-          <span className="art-star art-star-one" aria-hidden="true">✦</span>
-          <span className="art-star art-star-two" aria-hidden="true">✦</span>
-          <span className="art-rocket-glow" aria-hidden="true" />
-          <Image className="signs-artwork" src={`${basePath}/signs-of-life.png`} alt="Signs of Life — On the Moon by Onward Customs" width={1256} height={1568} priority />
-          <span className="anniversary-live-label">{anniversaryLabel(anniversaryYears)}</span>
+      <section className="reward-motion-panel" aria-label="Animated Onward rewards">
+        <div className="reward-universe" aria-hidden="true">
+          <span className="reward-ring reward-ring-outer" />
+          <span className="reward-ring reward-ring-inner" />
+          <span className="reward-core"><Trophy size={54} /><strong>ONWARD</strong><small>REWARDS</small></span>
+          <span className="reward-token reward-token-gift"><Gift size={22} /></span>
+          <span className="reward-token reward-token-savings">+5%</span>
+          <span className="reward-token reward-token-spark"><Sparkles size={21} /></span>
+          <span className="reward-token reward-token-credit">$50</span>
+          <span className="reward-particle particle-one">✦</span><span className="reward-particle particle-two">✦</span><span className="reward-particle particle-three">•</span>
         </div>
+        <div className="reward-motion-copy"><span>Every order moves you onward</span><h2>Earn more. Unlock more.</h2><p>Benefits, savings and rewards grow with your relationship.</p></div>
       </section>
       <section className="auth-card auth-login-panel" aria-labelledby="sign-in-title">
         <div className="auth-brand-row">
