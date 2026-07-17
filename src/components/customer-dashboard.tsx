@@ -228,6 +228,12 @@ export default function CustomerDashboard({
   }
   async function cancelRedemption(id:string){const supabase=getSupabaseBrowserClient()!;const{error}=await supabase.rpc("cancel_redemption_request",{p_id:id});if(error){notify(error.message);return}setRedemptionRequests(rows=>rows.map(row=>row.id===id?{...row,status:"cancelled"}:row));notify("Request cancelled.")}
 
+  function exportActivity() {
+    const cells = (value: string | number) => `"${String(value).replaceAll('"', '""')}"`;
+    const csv = ["Order,Date,Description,Qualifying spend,Savings,Status", ...activity.map((item) => [item.order,item.date,item.title,item.spend,item.savings,item.status].map(cells).join(","))].join("\r\n");
+    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})); const link=document.createElement("a"); link.href=url; link.download=`onward-rewards-activity-${new Date().toISOString().slice(0,10)}.csv`; link.click(); URL.revokeObjectURL(url); notify("Activity CSV downloaded.");
+  }
+
   async function submitResellerApplication() {
     if (!snapshot.accountId) return;
     const supabase = getSupabaseBrowserClient();
@@ -557,7 +563,7 @@ export default function CustomerDashboard({
                     <b>{offer.value}</b>
                   </div>
                 ))}
-                <button className="secondary-button full-width" onClick={() => notify("Savings example opened in prototype mode.")}>See a savings example</button>
+                <button className="secondary-button full-width" onClick={() => notify(`Example: a $1,000 eligible order at ${currentDiscount?.value ?? 0}% saves ${formatter.format(1000 * Number(currentDiscount?.value ?? 0) / 100)} before stackable offers.`)}>See a savings example</button>
               </div>
             </div>
           </section>
@@ -614,7 +620,7 @@ export default function CustomerDashboard({
               eyebrow="Activity & savings"
               title="See what counted—and what you saved."
               description="Only eligible Onward Customs orders contribute to your tier progress."
-              action={<button className="secondary-button" onClick={() => notify("A full activity export will be available with live account data.")}>Export activity</button>}
+              action={<button className="secondary-button" onClick={exportActivity}>Export activity</button>}
             />
             <div className="activity-layout">
               <div className="chart-card">
@@ -636,10 +642,10 @@ export default function CustomerDashboard({
                 </div>
               </div>
               <div className="activity-list-card">
-                <div className="list-card-heading"><h3>Recent qualifying orders</h3><button className="text-link" onClick={() => notify("All qualifying orders will load with live account data.")}>View all</button></div>
+                <div className="list-card-heading"><h3>Recent qualifying orders</h3><span className="status-pill status-neutral">{activity.length} shown</span></div>
                 <div className="activity-list">
                   {activity.map((item) => (
-                    <button className="activity-row" key={item.order} onClick={() => notify(`${item.order}: order details opened in prototype mode.`)}>
+                    <button className="activity-row" key={item.order} onClick={() => notify(`${item.order}: ${formatter.format(item.spend)} qualifying spend and ${formatter.format(item.savings)} verified savings.`)}>
                       <span className="order-icon"><ReceiptText size={18} /></span>
                       <span className="order-copy"><strong>{item.title}</strong><small>{item.order} · {item.date}</small></span>
                       <span className="order-value"><strong>{formatter.format(item.spend)}</strong><small>+{formatter.format(item.savings)} saved</small></span>
