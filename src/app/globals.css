@@ -107,10 +107,6 @@ h1, h2, h3 { letter-spacing: -.035em; }
 .tier-hero-side > :not(.tier-character-stage) { position: relative; z-index: 1; grid-column: 1; }
 .tier-character-stage { position: relative; z-index: 0; grid-column: 2; grid-row: 1 / -1; align-self: end; width: 100%; height: 245px; pointer-events: none; filter: drop-shadow(0 18px 18px rgb(0 0 0 / 32%)); }
 .tier-character-stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
-.tier-character-bronze .tier-character-body { clip-path: polygon(38% 0,100% 0,100% 100%,0 100%,0 62%,38% 62%); }
-.tier-character-hand { clip-path: polygon(0 0,43% 0,43% 66%,0 66%); transform-origin: 38% 62%; animation: bronze-hand-wave 2.8s ease-in-out infinite; }
-@keyframes bronze-hand-wave { 0%,12%,48%,100% { transform: rotate(0deg); } 22% { transform: rotate(-9deg); } 31% { transform: rotate(8deg); } 40% { transform: rotate(-5deg); } }
-@media (prefers-reduced-motion: reduce) { .tier-character-hand { animation: none; } }
 .hero-glow { position: absolute; border-radius: 50%; filter: blur(2px); pointer-events: none; }
 .hero-glow-one { width: 290px; height: 290px; top: -180px; right: 50px; background: radial-gradient(circle, rgb(255 197 0 / 17%), transparent 68%); }
 .hero-glow-two { width: 240px; height: 240px; bottom: -180px; left: -60px; background: radial-gradient(circle, rgb(32 178 170 / 15%), transparent 65%); }

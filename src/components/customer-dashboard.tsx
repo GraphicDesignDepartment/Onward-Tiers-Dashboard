@@ -386,9 +386,8 @@ export default function CustomerDashboard({
               </div>
 
               <div className="tier-hero-side">
-                <div className={`tier-character-stage tier-character-${currentTier.id}`} aria-hidden="true">
-                  <Image className="tier-character-body" src={`${basePath}/tier-art/${currentTier.id}.webp`} alt="" width={220} height={260} priority />
-                  {currentTier.id === "bronze" ? <Image className="tier-character-hand" src={`${basePath}/tier-art/${currentTier.id}.webp`} alt="" width={220} height={260} priority /> : null}
+                <div className="tier-character-stage" aria-hidden="true">
+                  <Image src={`${basePath}/tier-art/${currentTier.id}.webp`} alt="" width={220} height={260} priority />
                 </div>
                 <span className="hero-label">Benefits at a glance</span>
                 <div className="glance-stat">
