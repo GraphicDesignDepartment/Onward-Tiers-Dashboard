@@ -60,10 +60,21 @@ jobs:
           PGURI: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: |
           supabase start
+          LOCAL_ENV=$(supabase status -o env)
+          ANON_KEY=$(printf '%s\n' "$LOCAL_ENV" | sed -n 's/^ANON_KEY="\(.*\)"$/\1/p')
+          SERVICE_KEY=$(printf '%s\n' "$LOCAL_ENV" | sed -n 's/^SERVICE_ROLE_KEY="\(.*\)"$/\1/p')
+          test -n "$ANON_KEY" && test -n "$SERVICE_KEY"
+          create_user() {
+            curl -fsS -X POST "http://127.0.0.1:54321/auth/v1/admin/users" \
+              -H "apikey: $SERVICE_KEY" -H "Authorization: Bearer $SERVICE_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"email\":\"$1\",\"password\":\"PilotTest!2026\",\"email_confirm\":true}" >/dev/null
+          }
+          create_user gold.customer@example.invalid
+          create_user staff.admin@example.invalid
+          create_user unlinked@example.invalid
           psql "$PGURI" -v ON_ERROR_STOP=1 -f supabase/tests/e2e_seed.sql
           echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
-          ANON_KEY=$(supabase status -o env | sed -n 's/^ANON_KEY="\(.*\)"$/\1/p')
-          test -n "$ANON_KEY"
           echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
       - name: Run authenticated browser journeys
         run: npm run test:e2e
