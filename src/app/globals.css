@@ -153,6 +153,7 @@ h1, h2, h3 { letter-spacing: -.035em; }
 .stat-card div strong { margin: 3px 0 2px; font-size: 19px; letter-spacing: -.04em; }
 .stat-card div small { color: #9a9a9a; font-size: 7px; }
 .stat-card > svg { color: #aaa; }
+.stat-card-button { width:100%; color:inherit; font:inherit; text-align:left; cursor:pointer; transition:border-color .2s,transform .2s; }.stat-card-button:hover { border-color:#20b2aa; transform:translateY(-1px); }
 .trend { padding: 5px 7px; border-radius: 999px; color: var(--onward-success); background: #e3f5ef; font-size: 8px; font-weight: 800; }
 
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 20px; }

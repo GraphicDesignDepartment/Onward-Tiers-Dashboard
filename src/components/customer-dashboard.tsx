@@ -53,6 +53,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   demoDashboardSnapshot,
   loadAuthenticatedDashboard,
+  type DashboardSnapshot,
 } from "@/lib/supabase/dashboard";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -194,6 +195,28 @@ export default function CustomerDashboard({
     setActiveSection(id);
     setMobileOpen(false);
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function requestBenefit(benefit: DashboardSnapshot["benefits"][number]) {
+    if (!snapshot.accountId) return;
+    const remaining = benefit.total == null ? 1 : Math.max(0, benefit.total - benefit.used);
+    const quantityText = window.prompt(`How many ${benefit.unit} would you like to request?`, String(Math.min(1, remaining)));
+    if (!quantityText) return;
+    const quantity = Number(quantityText);
+    if (!Number.isFinite(quantity) || quantity <= 0) { notify("Enter a valid quantity."); return; }
+    const notes = window.prompt("Tell the Onward team how you would like to use this benefit.", "") ?? "";
+    const { error } = await getSupabaseBrowserClient()!.rpc("submit_benefit_redemption", { p_account_id: snapshot.accountId, p_benefit_id: benefit.id, p_quantity: quantity, p_notes: notes, p_idempotency_key: crypto.randomUUID() });
+    notify(error ? error.message : "Benefit request submitted for staff review.");
+  }
+
+  async function requestCredit() {
+    if (!snapshot.accountId || snapshot.availableCredit <= 0) { notify("No reward credit is currently available."); return; }
+    const amountText = window.prompt("How much reward credit would you like Onward to apply?", String(snapshot.availableCredit));
+    if (!amountText) return;
+    const amount = Number(amountText);
+    const reference = window.prompt("Optional order number or reference", "") ?? "";
+    const { error } = await getSupabaseBrowserClient()!.rpc("submit_credit_redemption", { p_account_id: snapshot.accountId, p_amount: amount, p_notes: "Customer credit request", p_order_reference: reference, p_idempotency_key: crypto.randomUUID() });
+    notify(error ? error.message : "Credit request submitted for staff review.");
   }
 
   async function submitResellerApplication() {
@@ -409,11 +432,11 @@ export default function CustomerDashboard({
                 <div><span>Saved this year</span><strong>{formatter.format(snapshot.savedThisYear)}</strong><small>Across {snapshot.qualifyingOrderCount} qualifying orders</small></div>
                 <span className="trend">Live</span>
               </div>
-              <div className="stat-card">
+              <button className="stat-card stat-card-button" onClick={() => void requestCredit()}>
                 <span className="stat-icon teal"><Gift size={20} /></span>
-                <div><span>Available credit</span><strong>{formatter.format(snapshot.availableCredit)}</strong><small>Net unexpired reward balance</small></div>
+                <div><span>Available credit</span><strong>{formatter.format(snapshot.availableCredit)}</strong><small>Request credit for an order</small></div>
                 <ChevronRight size={18} />
-              </div>
+              </button>
               <div className="stat-card">
                 <span className="stat-icon dark"><Clock3 size={20} /></span>
                 <div><span>Next annual reset</span><strong>Jan 1</strong><small>Artwork and program benefits</small></div>
@@ -481,7 +504,7 @@ export default function CustomerDashboard({
                       {open ? (
                         <motion.div className="benefit-detail" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
                           <p>{benefit.detail}</p>
-                          <button onClick={() => notify(`${benefit.title}: request started in prototype mode.`)}>{benefit.action} <ArrowRight size={14} /></button>
+                          <button onClick={() => void requestBenefit(benefit)}>{benefit.action} <ArrowRight size={14} /></button>
                         </motion.div>
                       ) : null}
                     </AnimatePresence>
