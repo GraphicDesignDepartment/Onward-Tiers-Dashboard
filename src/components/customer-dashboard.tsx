@@ -136,6 +136,7 @@ export default function CustomerDashboard({
     loadAuthenticatedDashboard(supabase).then(async (result) => {
       if (!active) return;
       if (result.status === "success") {
+        void supabase.rpc("mark_my_onboarding_accepted");
         setSnapshot(result.snapshot);
         const { data: request } = await supabase.from("verification_requests").select("status").eq("account_id", result.snapshot.accountId).eq("program", "reseller_decorator").maybeSingle();
         if (active && request?.status) setResellerStatus(request.status);
