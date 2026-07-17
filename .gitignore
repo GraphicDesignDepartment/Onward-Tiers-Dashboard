@@ -42,3 +42,7 @@ sb_secret_*.txt
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# browser test artifacts
+playwright-report/
+test-results/

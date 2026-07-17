@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const isGitHubPages = process.env.GITHUB_ACTIONS === "true";
+const isGitHubPages = process.env.GITHUB_ACTIONS === "true" && process.env.E2E !== "true";
 const repositoryBasePath = "/Onward-Tiers-Dashboard";
 
 const nextConfig: NextConfig = {
