@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Area,
   AreaChart,
@@ -108,6 +108,7 @@ export default function CustomerDashboard({
   onSignOut?: () => void | Promise<void>;
   onChangePassword?: () => void;
 }) {
+  const reduceMotion = useReducedMotion();
   const isSupabaseConfigured = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   );
@@ -386,6 +387,14 @@ export default function CustomerDashboard({
               </div>
 
               <div className="tier-hero-side">
+                <motion.div
+                  className="tier-character-stage"
+                  aria-hidden="true"
+                  animate={reduceMotion ? undefined : { y: [0, -7, 0], rotate: [-1.2, 1.2, -1.2] }}
+                  transition={reduceMotion ? undefined : { duration: 5.2, ease: "easeInOut", repeat: Infinity }}
+                >
+                  <Image src={`${basePath}/tier-art/${currentTier.id}.webp`} alt="" width={220} height={260} priority />
+                </motion.div>
                 <span className="hero-label">Benefits at a glance</span>
                 <div className="glance-stat">
                   <strong>{artworkRemaining ?? "Included"}</strong>
@@ -572,7 +581,10 @@ export default function CustomerDashboard({
             />
             <div className="activity-layout">
               <div className="chart-card">
-                <div className="chart-header"><div><span>Savings this year</span><strong>{formatter.format(snapshot.savedThisYear)}</strong></div><StatusPill tone="yellow">Database verified</StatusPill></div>
+                <div className="chart-header">
+                  <span>Savings this year</span>
+                  <div className="chart-value-row"><strong>{formatter.format(snapshot.savedThisYear)}</strong><StatusPill tone="yellow">Database verified</StatusPill></div>
+                </div>
                 <div className="chart-wrap" aria-label="Monthly savings chart">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={savingsData} margin={{ top: 10, right: 0, left: -22, bottom: 0 }}>
