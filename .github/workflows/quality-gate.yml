@@ -36,3 +36,4 @@ jobs:
           psql "$PGURI" -v ON_ERROR_STOP=1 -f supabase/tests/rewards_engine.sql
           psql "$PGURI" -v ON_ERROR_STOP=1 -f supabase/tests/rls_customer_isolation.sql
           psql "$PGURI" -v ON_ERROR_STOP=1 -f supabase/tests/redemption_workflow.sql
+          psql "$PGURI" -v ON_ERROR_STOP=1 -f supabase/tests/notifications_support.sql

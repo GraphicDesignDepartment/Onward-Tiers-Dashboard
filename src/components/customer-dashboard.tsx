@@ -15,7 +15,6 @@ import {
 import {
   ArrowRight,
   BadgeCheck,
-  Bell,
   Building2,
   CalendarDays,
   Check,
@@ -49,6 +48,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { formatter, tiers } from "@/lib/tier-data";
+import CustomerCommunications from "@/components/customer-communications";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   demoDashboardSnapshot,
@@ -350,11 +350,7 @@ export default function CustomerDashboard({
             <strong>Rewards</strong>
           </div>
           <div className="topbar-actions">
-            <a className="text-link topbar-help" href="mailto:contact@onwardcustoms.com"><HelpCircle size={17} /> Help</a>
-            <button className="icon-button notification-button" aria-label="Notifications" onClick={() => notify("You’re all caught up — no new notifications.")}>
-              <Bell size={19} />
-              <span aria-hidden="true" />
-            </button>
+            <CustomerCommunications accountId={snapshot.accountId} />
             <div className="profile-menu-wrap">
               <button
                 className="profile-button"
